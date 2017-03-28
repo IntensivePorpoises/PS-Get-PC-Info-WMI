@@ -27,9 +27,8 @@ Param($PCNAME)
     Import-Module -Name ActiveDirectory -Cmdlet Get-ADComputer, Get-ADOrganizationalUnit;
     $PC_AD_Name = Get-ADComputer $PC_NAME;
     $OU = $PC_AD_Name.DistinguishedName.SubString($PC_AD_Name.DistinguishedName.IndexOf('OU='));
-    #$PC_AD_NamesInOU = Get-ADComputer -Filter * -SearchScope OneLevel -SearchBase (Get-ADOrganizationalUnit $OU).DistinguishedName;
 
-    # Hack the Gibson
+    # Display minimally formatted output
     Write-Output "Note: some info may not populate if this is run against the local PC"
     Write-Output "-------------------------------------"
     Write-Output "$User is logged in"
@@ -52,5 +51,5 @@ Param($PCNAME)
 }
 
 $PC_AD_Name=read-host "Enter computer name:"
-# PC12951
+
 getPCInfo $PC_AD_Name
