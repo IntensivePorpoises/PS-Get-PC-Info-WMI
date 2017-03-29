@@ -10,12 +10,15 @@ Param($PCNAME)
     $OS = Get-WmiObject Win32_OperatingSystem -comp $PC_NAME
     $CS = Get-WmiObject Win32_ComputerSystem -comp $PC_NAME
     $CSP = Get-WmiObject Win32_ComputerSystemProduct -comp $PC_NAME
+    $Net = Get-WmiObject Win32_NetworkAdapterConfiguration -comp  $PC_NAME
 
 
     # And to build these strings so the actual output commands don't have to be TOOOO ugly
     $User = $CS.UserName
     $Domain,$UserID=$User -split "\\"
     $Server_Name = $CS.DNSHostName+"."+$CS.Domain
+    $Model = $CS.Model
+    $IP_Address = ($Net | ? { $_.IPAddress -ne $null }).ipaddress
     $Serial_Number = $BIOS.SerialNumber
     $BIOS_Version = $BIOS.Version
     $BIOS_Caption = $BIOS.Caption
@@ -62,6 +65,7 @@ Param($PCNAME)
     Write-Output ""
     Write-Output "---- PC Name & Group Membership -------------------"
     Write-Output "Hostname: $Server_Name"
+    Write-Output "Address(es): $IP_Address"
     Write-Output "PC's self-reported membership:"
     Write-Output "[$OU]"
     Write-Output ""
@@ -70,6 +74,7 @@ Param($PCNAME)
     Write-Output "Windows version $OS_Version"
     Write-Output ""
     Write-Output "---- Hardware -------------------------------------"
+    Write-Output "Model: $Model"
     Write-Output "RAM: $RAM MB"
     Write-Output ""
     Write-Output "---- BIOS Information -----------------------------"
