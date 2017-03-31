@@ -28,6 +28,8 @@ Param($PCNAME)
     $OS_Name = $OS.Caption
     $OS_Arch = $OS.OSArchitecture
     $OS_Version = $OS.Version
+    $UserFName = (Get-Aduser $UserID -Properties GivenName).GivenName
+    $UserLName = (Get-Aduser $UserID -Properties SurName).SurName
     $BoolAccountLocked = (Get-Aduser $UserID -Properties LockedOut).LockedOut
     $StrAccountLocked = "is NOT"
     $BoolAccountEnabled = (Get-Aduser $UserID -Properties Enabled).Enabled
@@ -56,7 +58,7 @@ Param($PCNAME)
     Write-Output "Note: some info may not populate if this is run against the local PC"
     
     Write-Output "---- User info & uptime ---------------------------"
-    Write-Output "$User is logged in"
+    Write-Output "$User ($UserFname $UserLName) is logged in"
     Write-Output ""
     Write-Output "Account $UserID $StrAccountLocked locked"
     Write-Output "Account $UserID $StrAccountEnabled enabled"
