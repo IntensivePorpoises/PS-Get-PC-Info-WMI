@@ -11,6 +11,7 @@ Param($PCNAME)
     $CS = Get-WmiObject Win32_ComputerSystem -comp $PC_NAME
     $CSP = Get-WmiObject Win32_ComputerSystemProduct -comp $PC_NAME
     $Net = Get-WmiObject Win32_NetworkAdapterConfiguration -comp  $PC_NAME
+    $DriveStats = Get-WMIObject Win32_DiskDrive -comp  $PC_NAME
 
 
     # And to build these strings so the actual output commands don't have to be TOOOO ugly
@@ -37,6 +38,12 @@ Param($PCNAME)
     $RAM = ($CS.TotalPhysicalMemory/1MB).ToString(".")
     $UpTime = (Get-Date) - ($Last_Boot)
     $UpTime_Formatted = "Uptime: " + $UpTime.Days + " days, " + $UpTime.Hours + " hours, " + $UpTime.Minutes + " minutes" 
+    $DriveStatus = ""
+
+    # Create string w/ Drive list & statuses
+    ForEach ($Drive in $DriveStats){
+        $DriveStatus = $DriveStatus + $Drive.Caption + ": " + $Drive.Status + "`n"
+}
 
     # Set up user status
     if($BoolAccountLocked)
@@ -78,6 +85,8 @@ Param($PCNAME)
     Write-Output "---- Hardware -------------------------------------"
     Write-Output "Model: $Model"
     Write-Output "RAM: $RAM MB"
+    Write-Output ""
+    Write-Output "$DriveStatus"
     Write-Output ""
     Write-Output "---- BIOS Information -----------------------------"
     Write-Output "OEM Serial/Service Tag: $Serial_Number"
