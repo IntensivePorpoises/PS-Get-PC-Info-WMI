@@ -13,6 +13,12 @@ Param($PCNAME)
     $Net = Get-WmiObject Win32_NetworkAdapterConfiguration -comp  $PC_NAME
     $DriveStats = Get-WMIObject Win32_DiskDrive -comp  $PC_NAME
 
+    # I want to open the registry of the remote PC
+    $RemoteRegistry = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $PC_NAME)
+
+    # Want to access specific info specifically about Internet Explorer on the remote PC:
+    $IEKey= $RemoteRegistry.OpenSubKey("SOFTWARE\\Microsoft\\Internet Explorer")
+    
 
     # And to build these strings so the actual output commands don't have to be TOOOO ugly
     $User = $CS.UserName
@@ -29,6 +35,7 @@ Param($PCNAME)
     $OS_Name = $OS.Caption
     $OS_Arch = $OS.OSArchitecture
     $OS_Version = $OS.Version
+    $IEVersion = $IEKey.GetValue("SvcVersion")
     $UserFName = (Get-Aduser $UserID -Properties GivenName).GivenName
     $UserLName = (Get-Aduser $UserID -Properties SurName).SurName
     $BoolAccountLocked = (Get-Aduser $UserID -Properties LockedOut).LockedOut
@@ -81,6 +88,8 @@ Param($PCNAME)
     Write-Output "---- Operating system Info-------------------------"
     Write-Output "$OS_Name $OS_Arch"
     Write-Output "Windows version $OS_Version"
+    Write-Output ""
+    Write-Output "Internet Explorer version $IEVersion"
     Write-Output ""
     Write-Output "---- Hardware -------------------------------------"
     Write-Output "Model: $Model"
