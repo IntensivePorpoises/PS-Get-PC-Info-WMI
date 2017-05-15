@@ -14,15 +14,68 @@ Param($PCNAME)
     $DriveStats = Get-WMIObject Win32_DiskDrive -comp  $PC_NAME
 
     # I want to open the registry of the remote PC
+    # So I create a hostname
+    $HOSTNAME = '\\'+$PC_NAME
+
+    # And I want to make sure the remote registry service is started (But not print status)
+    sc.exe $HOSTNAME start "RemoteRegistry"  > $null
+
+    # And I want to open HKLM on the remote PC:
     $RemoteRegistry = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $PC_NAME)
 
-    # Want to access specific info specifically about Internet Explorer on the remote PC:
+    # Want to access specific info about Internet Explorer on the remote PC:
     $IEKey= $RemoteRegistry.OpenSubKey("SOFTWARE\\Microsoft\\Internet Explorer")
-    
+
+    # We want to get the name of the logged in user if there is one:
+    # I want to check, first off, if there actually is someone logged in!
+    if($CS.UserName)
+    {
+    # If so, we can start getting more info:
+        $User = $CS.UserName
+        $Domain,$UserID=$User -split "\\"
+        $UserFName = (Get-Aduser $UserID -Properties GivenName).GivenName
+        $UserLName = (Get-Aduser $UserID -Properties SurName).SurName
+        $UserName = $UserFName + " " + $UserLName
+
+
+		# Set up user status
+		# Look to see if the user's account is enabled, and if it is locked
+		$BoolAccountLocked = (Get-Aduser $UserID -Properties LockedOut).LockedOut
+        $BoolAccountEnabled = (Get-Aduser $UserID -Properties Enabled).Enabled
+        
+		# Build strings based on the previous boolean values.
+		if($BoolAccountLocked)
+		{
+			$StrAccountLocked = "Account $UserID is locked"
+		}
+		else
+		{
+			$StrAccountLocked = "Account $UserID is NOT locked"
+		}
+
+		if($BoolAccountEnabled)
+		{
+			$StrAccountEnabled = "Account $UserID is enabled"
+		}
+		else
+		{
+			$StrAccountEnabled = "Account $UserID is enabled"
+		}
+
+    }
+    else
+    {
+        $UserName = "Nobody"
+        $UserID = "Noone"
+        $User = "No user"
+        $StrAccountLocked = ""
+        $StrAccountEnabled = ""
+    }
+
 
     # And to build these strings so the actual output commands don't have to be TOOOO ugly
-    $User = $CS.UserName
-    $Domain,$UserID=$User -split "\\"
+
+    
     $Server_Name = $CS.DNSHostName+"."+$CS.Domain
     $Model = $CS.Model
     $IP_Address = ($Net | ? { $_.IPAddress -ne $null }).ipaddress
@@ -36,12 +89,6 @@ Param($PCNAME)
     $OS_Arch = $OS.OSArchitecture
     $OS_Version = $OS.Version
     $IEVersion = $IEKey.GetValue("SvcVersion")
-    $UserFName = (Get-Aduser $UserID -Properties GivenName).GivenName
-    $UserLName = (Get-Aduser $UserID -Properties SurName).SurName
-    $BoolAccountLocked = (Get-Aduser $UserID -Properties LockedOut).LockedOut
-    $StrAccountLocked = "is NOT"
-    $BoolAccountEnabled = (Get-Aduser $UserID -Properties Enabled).Enabled
-    $StrAccountEnabled = "is NOT"
     $RAM = ($CS.TotalPhysicalMemory/1MB).ToString(".")
     $UpTime = (Get-Date) - ($Last_Boot)
     $UpTime_Formatted = "Uptime: " + $UpTime.Days + " days, " + $UpTime.Hours + " hours, " + $UpTime.Minutes + " minutes" 
@@ -50,18 +97,7 @@ Param($PCNAME)
     # Create string w/ Drive list & statuses
     ForEach ($Drive in $DriveStats){
         $DriveStatus = $DriveStatus + $Drive.Caption + ": " + $Drive.Status + "`n"
-}
-
-    # Set up user status
-    if($BoolAccountLocked)
-    {
-        $StrAccountLocked = "is"
-    }
-
-    if($BoolAccountEnabled)
-    {
-        $StrAccountEnabled = "is"
-    }
+	}
 
     # And try to find out what OU the PC is in.
     $PC_AD_Name = Get-ADComputer $PC_NAME;
@@ -72,10 +108,10 @@ Param($PCNAME)
     Write-Output "Note: some info may not populate if this is run against the local PC"
     
     Write-Output "---- User info & uptime ---------------------------"
-    Write-Output "$User ($UserFname $UserLName) is logged in"
+    Write-Output "$User ($UserName) is logged in"
     Write-Output ""
-    Write-Output "Account $UserID $StrAccountLocked locked"
-    Write-Output "Account $UserID $StrAccountEnabled enabled"
+    Write-Output "$StrAccountLocked"
+    Write-Output "$StrAccountEnabled"
     Write-Output ""
     Write-Output "$UpTime_Formatted"
     Write-Output ""
