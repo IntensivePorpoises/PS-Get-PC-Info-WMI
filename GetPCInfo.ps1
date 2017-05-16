@@ -13,12 +13,21 @@ Param($PCNAME)
     $Net = Get-WmiObject Win32_NetworkAdapterConfiguration -comp  $PC_NAME
     $DriveStats = Get-WMIObject Win32_DiskDrive -comp  $PC_NAME
 
+    # Wait 1 sec
+    Start-Sleep -s 1
+
     # I want to open the registry of the remote PC
     # So I create a hostname
     $HOSTNAME = '\\'+$PC_NAME
 
+    # Wait 1 sec
+    Start-Sleep -s 1
+
     # And I want to make sure the remote registry service is started (But not print status)
     sc.exe $HOSTNAME start "RemoteRegistry"  > $null
+
+    # Wait 1 sec
+    Start-Sleep -s 1
 
     # And I want to open HKLM on the remote PC:
     $RemoteRegistry = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $PC_NAME)
@@ -44,6 +53,8 @@ Param($PCNAME)
         $BoolAccountEnabled = (Get-Aduser $UserID -Properties Enabled).Enabled
         
 		# Build strings based on the previous boolean values.
+        #
+        # Check if they're locked:
 		if($BoolAccountLocked)
 		{
 			$StrAccountLocked = "Account $UserID is locked"
@@ -52,7 +63,7 @@ Param($PCNAME)
 		{
 			$StrAccountLocked = "Account $UserID is NOT locked"
 		}
-
+        # Check if they're enabled:
 		if($BoolAccountEnabled)
 		{
 			$StrAccountEnabled = "Account $UserID is enabled"
@@ -65,16 +76,17 @@ Param($PCNAME)
     }
     else
     {
-        $UserName = "Nobody"
-        $UserID = "Noone"
+    # If no user is logged on, print placeholder values instead of invalid ones.
+        $UserName = "No user"
+        $UserID = "No user"
         $User = "No user"
         $StrAccountLocked = ""
         $StrAccountEnabled = ""
     }
 
 
-    # And to build these strings so the actual output commands don't have to be TOOOO ugly
-
+    # Build the strings that don't require any particular logic to them here
+    # So the output commands do't have to be overly-complicated.
     
     $Server_Name = $CS.DNSHostName+"."+$CS.Domain
     $Model = $CS.Model
@@ -106,7 +118,6 @@ Param($PCNAME)
     # Display minimally formatted output
     Write-Output ""
     Write-Output "Note: some info may not populate if this is run against the local PC"
-    
     Write-Output "---- User info & uptime ---------------------------"
     Write-Output "$User ($UserName) is logged in"
     Write-Output ""
@@ -117,7 +128,9 @@ Param($PCNAME)
     Write-Output ""
     Write-Output "---- PC Name & Group Membership -------------------"
     Write-Output "Hostname: $Server_Name"
-    Write-Output "Address(es): $IP_Address"
+    Write-Output "Address(es):"
+    Write-Output "    $IP_Address"
+    Write-Output ""
     Write-Output "PC's self-reported membership:"
     Write-Output "[$OU]"
     Write-Output ""
