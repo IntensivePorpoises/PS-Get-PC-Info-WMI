@@ -12,6 +12,7 @@ Param($PCNAME)
     $CSP = Get-WmiObject Win32_ComputerSystemProduct -comp $PC_NAME
     $Net = Get-WmiObject Win32_NetworkAdapterConfiguration -comp  $PC_NAME
     $DriveStats = Get-WMIObject Win32_DiskDrive -comp  $PC_NAME
+    $Graphics = Get-WMIObject Win32_VideoController -comp $PC_NAME
 
     # Wait 1 sec
     Start-Sleep -s 1
@@ -90,6 +91,7 @@ Param($PCNAME)
     
     $Server_Name = $CS.DNSHostName+"."+$CS.Domain
     $Model = $CS.Model
+    #$GraphicsList = $Graphics.Name
     $IP_Address = ($Net | ? { $_.IPAddress -ne $null }).ipaddress
     $Serial_Number = $BIOS.SerialNumber
     $BIOS_Version = $BIOS.Version
@@ -106,8 +108,15 @@ Param($PCNAME)
     $UpTime_Formatted = "Uptime: " + $UpTime.Days + " days, " + $UpTime.Hours + " hours, " + $UpTime.Minutes + " minutes" 
     $DriveStatus = ""
 
+    # Lets get a list of graphics cards on the system
+    ForEach ($GPU in $Graphics.Name)
+    {
+        $GraphicsList = $GraphicsList + "$GPU`n"
+    }
+
     # Create string w/ Drive list & statuses
-    ForEach ($Drive in $DriveStats){
+    ForEach ($Drive in $DriveStats)
+    {
         $DriveStatus = $DriveStatus + $Drive.Caption + ": " + $Drive.Status + "`n"
 	}
 
@@ -143,6 +152,8 @@ Param($PCNAME)
     Write-Output "---- Hardware -------------------------------------"
     Write-Output "Model: $Model"
     Write-Output "RAM: $RAM MB"
+    Write-Output ""
+    Write-Output "$GraphicsList"
     Write-Output ""
     Write-Output "$DriveStatus"
     Write-Output ""
