@@ -13,6 +13,13 @@ Param($PCNAME)
     $Net = Get-WmiObject Win32_NetworkAdapterConfiguration -comp  $PC_NAME
     $DriveStats = Get-WMIObject Win32_DiskDrive -comp  $PC_NAME
     $Graphics = Get-WMIObject Win32_VideoController -comp $PC_NAME
+    $RawTemp = Get-WmiObject MSAcpi_ThermalZoneTemperature -Namespace "root/wmi" -comp $PC_NAME | where -Property instancename -EQ "ACPI\ThermalZone\TZ01_0"
+    $Explorer = Get-WmiObject -ComputerName $PC_NAME -Class win32_process | ?{$_.name -eq "explorer.exe"}
+
+    $TempInKelvin = $RawTemp.CurrentTemperature / 10
+    $TempInCelcius = $TempInKelvin - 273.15
+    $TempInFahrenheit = (9/5) * $currentTempCelsius + 32
+
 
     # Wait 1 sec
     Start-Sleep -s 1
@@ -85,6 +92,28 @@ Param($PCNAME)
         $StrAccountEnabled = ""
     }
 
+    # Parse Explorer's registry settings for drive letters:
+    if($Explorer)
+    {
+        $Hive = [long]$HIVE_HKU = 2147483651
+        $SID = ($Explorer.GetOwnerSid()).sid
+        $Owner  = $Explorer.GetOwner()
+        $RegProv = get-WmiObject -List -Namespace "root\default" -ComputerName $PC_NAME | Where-Object {$_.Name -eq "StdRegProv"}
+        $DriveList = $RegProv.EnumKey($Hive, "$($sid)\Network")
+        
+        #If the SID network has mapped drives iterate and report on said drives
+        if($DriveList.sNames.count -gt 0)
+        {
+            #"$($owner.Domain)\$($owner.user) on $($ComputerName)"
+            foreach($drive in $DriveList.sNames)
+            {
+                $DriveLetterList=$DriveLetterList+"$($drive)`t$(($RegProv.GetStringValue($Hive, "$($sid)\Network\$($drive)", "RemotePath")).sValue)"+"`n"
+            }
+        }
+        else
+        {"No mapped drives on $($PC_NAME)"}
+    }
+
 
     # Build the strings that don't require any particular logic to them here
     # So the output commands do't have to be overly-complicated.
@@ -135,6 +164,7 @@ Param($PCNAME)
     Write-Output ""
     Write-Output "$UpTime_Formatted"
     Write-Output ""
+    Write-Output "Mapped network drives are:`n$DriveLetterList"
     Write-Output "---- PC Name & Group Membership -------------------"
     Write-Output "Hostname: $Server_Name"
     Write-Output "Address(es):"
@@ -157,6 +187,7 @@ Param($PCNAME)
     Write-Output ""
     Write-Output "$DriveStatus"
     Write-Output ""
+    Write-Output "System temperature (Celcius): $TempInCelcius"
     Write-Output "---- BIOS Information -----------------------------"
     Write-Output "OEM Serial/Service Tag: $Serial_Number"
     Write-Output "BIOS version: $BIOS_Version"
